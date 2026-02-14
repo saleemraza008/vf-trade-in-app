@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="es" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Valuación de iPhone</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .step-container {
+      min-height: 400px;
+    }
+    
+    .option-card {
+      transition: all 0.3s ease !important;
+      background-color: #ffffff !important;
+      border: 2px solid #e5e7eb !important;
+    }
+    
+    .option-card:hover:not(.selected) {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+      border-color: #0166FF !important;
+      background-color: #ffffff !important;
+    }
+    
+    .option-card.selected {
+      border: 2px solid #0166FF !important;
+      background-color: #eff6ff !important;
+    }
+    
+    .checkbox-card {
+      transition: all 0.3s ease !important;
+      background-color: #ffffff !important;
+      border: 2px solid #e5e7eb !important;
+    }
+    
+    .checkbox-card:hover {
+      transform: translateY(-2px) !important;
+      border-color: #0166FF !important;
+      background-color: #ffffff !important;
+    }
+    
+    .checkbox-card.checked-card {
+      border: 2px solid #0166FF !important;
+      background-color: #eff6ff !important;
+    }
+    
+    .progress-step {
+      transition: all 0.3s ease;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.4s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="app" class="w-full h-full bg-transparent"></div>
+  <script>
+    const defaultConfig = {
+      app_title: "Valoración de tu iPhone antiguo",
+      subtitle_text: "Descubre el valor de tu iPhone en simples pasos"
+    };
+
+    let currentStep = 1;
+    let valuationData = {
+      model: '',
+      storage: '',
+      basePrice: 0,
+      condition: '',
+      conditionDeduction: 0,
+      hasBrokenParts: false,
+      brokenParts: [],
+      brokenPartsDeduction: 0,
+      hasRepairs: false,
+      repairedParts: [],
+      repairDeduction: 0,
+      batteryHealth: '',
+      batteryDeduction: 0
+    };
+
+    const iphoneModels = {
+      'iPhone 17 Pro Max': { image: 'https://images.typeform.com/images/giq9ZY8KFeyr/choice/default', '256GB': 927, '512GB': 1017, '1TB': 1120, '2TB': 1340 },
+      'iPhone 17 Pro': { image: 'https://images.typeform.com/images/Wi7Dw9WaNU3e/choice/default', '256GB': 823, '512GB': 958, '1TB': 1048 },
+      'iPhone 17': { image: 'https://images.typeform.com/images/hgu2gx5dKf2x/choice/default', '256GB': 607, '512GB': 751 },
+      'iPhone Air': { image: 'https://images.typeform.com/images/j6RC3PYLHjwG/choice/default', '256GB': 620, '512GB': 720, '1TB': 845 },
+      'iPhone 16 Pro Max': { image: 'https://images.typeform.com/images/Z3heJGsCXDQA/choice/default', '256GB': 643, '512GB': 697, '1TB': 742 },
+      'iPhone 16 Pro': { image: 'https://images.typeform.com/images/CZPWsiLJpP9Z/choice/default', '128GB': 558, '256GB': 616, '512GB': 680 },
+      'iPhone 16 Plus': { image: 'https://images.typeform.com/images/udanUGfSGzNp/choice/default', '128GB': 502, '256GB': 540, '512GB': 594 },
+      'iPhone 16': { image: 'https://images.typeform.com/images/icd4RH9kyWuX/choice/default', '128GB': 455, '256GB': 502, '512GB': 544 },
+      'iPhone 15 Pro Max': { image: 'https://images.typeform.com/images/f8rq2KxRUrPP/choice/default', '256GB': 510, '512GB': 540, '1TB': 567 },
+      'iPhone 15 Pro': { image: 'https://images.typeform.com/images/mYHWBPqYBFpz/choice/default', '128GB': 455, '256GB': 495, '512GB': 530 },
+      'iPhone 15 Plus': { image: 'https://images.typeform.com/images/VNnGJ8357wsx/choice/default', '128GB': 365, '256GB': 396, '512GB': 428 },
+      'iPhone 15': { image: 'https://images.typeform.com/images/e83XwNPmjNsn/choice/default', '128GB': 347, '256GB': 383, '512GB': 423 },
+      'iPhone 14 Pro Max': { image: 'https://images.typeform.com/images/tTvgx3MGVX8W/choice/default', '128GB': 387, '256GB': 414, '512GB': 446, '1TB': 455 },
+      'iPhone 14 Pro': { image: 'https://images.typeform.com/images/sc3Kre2pA54c/choice/default', '128GB': 340, '256GB': 360, '512GB': 405 },
+      'iPhone 14 Plus': { image: 'https://images.typeform.com/images/bkqvRFqPmipT/choice/default', '128GB': 225, '256GB': 256, '512GB': 288 },
+      'iPhone 14': { image: 'https://images.typeform.com/images/AGPfLRkhb9wC/choice/default', '128GB': 260, '256GB': 285, '512GB': 330 },
+      'iPhone 13 Pro Max': { image: 'https://images.typeform.com/images/NgktkrwDZqm7/choice/default', '128GB': 302, '256GB': 320, '512GB': 338, '1TB': 356 },
+      'iPhone 13 Pro': { image: 'https://images.typeform.com/images/cVJjz9Jz6Ut8/choice/default', '128GB': 260, '256GB': 375, '512GB': 302 },
+      'iPhone 13': { image: 'https://images.typeform.com/images/PfQ6rzJtFDya/choice/default', '128GB': 202, '256GB': 220, '512GB': 240 },
+      'iPhone 13 Mini': { image: 'https://images.typeform.com/images/DPNtsmpe27Hg/choice/default', '128GB': 120, '256GB': 165, '512GB': 198 },
+      'iPhone 12 Pro Max': { image: 'https://images.typeform.com/images/PrRypGPJfE3E/choice/default', '128GB': 260, '256GB': 280, '512GB': 290 },
+      'iPhone 12 Pro': { image: 'https://images.typeform.com/images/zVxmk4vAdbvP/choice/default', '128GB': 180, '256GB': 205, '512GB': 230 },
+      'iPhone 12': { image: 'https://images.typeform.com/images/zg6LJuzWQbJQ/choice/default', '64GB': 120, '128GB': 140, '256GB': 170 },
+      'iPhone 12 Mini': { image: 'https://images.typeform.com/images/s6QdRHCqgStT/choice/default', '64GB': 80, '128GB': 90, '256GB': 110 },
+      'iPhone SE 2020': { image: 'https://images.typeform.com/images/yWwCyAkk5tLD/choice/default', '64GB': 30, '128GB': 40, '256GB': 60 },
+      'iPhone 11 Pro Max': { image: 'https://images.typeform.com/images/LBk3ynmc8uW9/choice/default', '64GB': 110, '256GB': 130, '512GB': 150 },
+      'iPhone 11 Pro': { image: 'https://images.typeform.com/images/GuikigmpxqTj/choice/default', '64GB': 90, '256GB': 110, '512GB': 130 },
+      'iPhone 11': { image: 'https://images.typeform.com/images/XZqx4DVB9d6u/choice/default', '64GB': 75, '128GB': 85, '256GB': 100 },
+      'iPhone XR': { image: 'https://images.typeform.com/images/W8LfVpDM9Zmb/choice/default', '64GB': 60, '128GB': 70, '256GB': 80 },
+      'iPhone XS Max': { image: 'https://images.typeform.com/images/YgiQFNnHEkUQ/choice/default', '64GB': 60, '256GB': 80, '512GB': 102 },
+      'iPhone XS': { image: 'https://images.typeform.com/images/emPUrF8VWL3j/choice/default', '64GB': 50, '256GB': 65, '512GB': 80 },
+      'iPhone X': { image: 'https://images.typeform.com/images/T4AVHQ4C75Hs/choice/default', '64GB': 40, '256GB': 60 }
+    };
+
+    const conditionOptions = [
+      { id: 1, text: 'En buena condición sin marcas visibles', deduction: 0 },
+      { id: 2, text: 'Con pocas marcas visibles en la pantalla o en la parte trasera o laterales', deduction: 3 },
+      { id: 3, text: 'Con muchas marcas visibles en la pantalla o en la parte trasera o laterales', deduction: 7 }
+    ];
+
+    const brokenPartsOptions = [
+      { id: 'pantalla', text: 'Pantalla', deduction: 50 },
+      { id: 'tapa_trasera', text: 'Tapa trasera', deduction: 30 },
+      { id: 'puerto_carga', text: 'Puerto de carga', deduction: 10 },
+      { id: 'camara_trasera', text: 'Cámara trasera', deduction: 40 },
+      { id: 'camara_frontal', text: 'Cámara frontal', deduction: 30 },
+      { id: 'face_id', text: 'Face ID', deduction: 40 },
+      { id: 'otro', text: 'Otro', deduction: 0 }
+    ];
+
+    const repairPartsOptions = [
+      { id: 'pantalla', text: 'Pantalla' },
+      { id: 'bateria', text: 'Batería' },
+      { id: 'tapa_trasera', text: 'Tapa trasera' },
+      { id: 'camara_trasera', text: 'Cámara trasera' }
+    ];
+
+    function onConfigChange(config) {
+      const titleElement = document.getElementById('main-title');
+      const subtitleElement = document.getElementById('subtitle');
+      
+      if (titleElement) {
+        titleElement.textContent = config.app_title || defaultConfig.app_title;
+      }
+      if (subtitleElement) {
+        subtitleElement.textContent = config.subtitle_text || defaultConfig.subtitle_text;
+      }
+    }
+
+    function renderApp() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="min-h-full p-6 md:p-8 bg-transparent">
+          <div class="w-full mx-auto">
+            <header class="text-center mb-8">
+              <h1 id="main-title" class="text-4xl font-bold text-gray-900 mb-2">${window.elementSdk?.config?.app_title || defaultConfig.app_title}</h1>
+              <p id="subtitle" class="text-lg text-gray-700">${window.elementSdk?.config?.subtitle_text || defaultConfig.subtitle_text}</p>
+            </header>
+
+            <div class="bg-white rounded-2xl p-6 md:p-8 mb-6">
+              <div id="progress-bar" class="mb-8"></div>
+              <div id="step-content" class="step-container"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      renderProgressBar();
+      renderStep();
+    }
+
+    function renderProgressBar() {
+      const progressBar = document.getElementById('progress-bar');
+      const totalSteps = 8;
+      const progress = (currentStep / totalSteps) * 100;
+      
+      progressBar.innerHTML = `
+        <div class="mb-4">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm font-semibold text-gray-900">Paso ${currentStep} de ${totalSteps}</span>
+            <span class="text-sm font-semibold text-gray-900">${Math.round(progress)}%</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500" style="width: ${progress}%; background-color: #0166FF;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderStep() {
+      const content = document.getElementById('step-content');
+      content.className = 'step-container fade-in';
+      
+      switch(currentStep) {
+        case 1:
+          renderStep1(content);
+          break;
+        case 2:
+          renderStep2(content);
+          break;
+        case 3:
+          renderStep3(content);
+          break;
+        case 4:
+          renderStep4(content);
+          break;
+        case 5:
+          renderStep5(content);
+          break;
+        case 6:
+          renderStep6(content);
+          break;
+        case 7:
+          renderStep7(content);
+          break;
+        case 8:
+          renderStep8(content);
+          break;
+      }
+      
+      renderProgressBar();
+    }
+
+    function renderStep1(content) {
+      const models = Object.keys(iphoneModels);
+      
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Selecciona el modelo de iPhone</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          ${models.map(model => `
+            <button onclick="selectModel('${model}')" class="option-card p-3 rounded-xl text-center ${valuationData.model === model ? 'selected' : ''}">
+              <img src="${iphoneModels[model].image}" alt="${model}" class="w-full h-16 object-contain mb-2" onerror="this.src=''; this.alt='Image failed to load'; this.style.display='none';">
+              <div class="font-semibold text-sm text-gray-800">${model}</div>
+            </button>
+          `).join('')}
+        </div>
+        <button onclick="nextStep()" ${!valuationData.model ? 'disabled' : ''} class="w-full py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+          Continuar
+        </button>
+      `;
+    }
+
+    function renderStep2(content) {
+      const modelData = iphoneModels[valuationData.model];
+      const storageOptions = Object.keys(modelData).filter(key => key !== 'image');
+      
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Selecciona la capacidad de almacenamiento</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          ${storageOptions.map(storage => `
+            <button onclick="selectStorage('${storage}')" class="option-card p-6 rounded-xl text-center ${valuationData.storage === storage ? 'selected' : ''}">
+              <div class="text-2xl font-bold text-gray-800">${storage}</div>
+            </button>
+          `).join('')}
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${!valuationData.storage ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep3(content) {
+      const conditionDescriptions = {
+        1: "El dispositivo está en excelente estado",
+        2: "Marcas menores en pantalla, parte trasera o laterales",
+        3: "Marcas evidentes en pantalla, parte trasera o laterales"
+      };
+      
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿En qué condición está el iPhone?</h2>
+        <div class="space-y-4 mb-6">
+          ${conditionOptions.map(option => `
+            <button onclick="selectCondition(${option.id})" class="option-card w-full p-4 rounded-xl text-left ${valuationData.condition === option.id ? 'selected' : ''}">
+              <div class="flex items-start">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #E6F2FF;">
+                  <span class="font-bold" style="color: #0166FF;">${option.id}</span>
+                </div>
+                <div class="flex-1">
+                  <div class="font-medium text-gray-800">${option.text}</div>
+                  <div class="text-sm text-gray-600 mt-1">${conditionDescriptions[option.id]}</div>
+                </div>
+              </div>
+            </button>
+          `).join('')}
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${!valuationData.condition ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep4(content) {
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿Hay alguna parte rota?</h2>
+        <div class="space-y-4 mb-6">
+          <button onclick="selectHasBrokenParts(false)" class="option-card w-full p-4 rounded-xl text-left ${valuationData.hasBrokenParts === false && valuationData.hasBrokenParts !== '' ? 'selected' : ''}">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5" style="border-color: ${valuationData.hasBrokenParts === false && valuationData.hasBrokenParts !== '' ? '#0166FF' : '#d1d5db'};">
+                ${valuationData.hasBrokenParts === false && valuationData.hasBrokenParts !== '' ? '<div class="w-3 h-3 rounded-full" style="background-color: #0166FF;"></div>' : ''}
+              </div>
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">No</div>
+                <div class="text-sm text-gray-600 mt-1">Todas las partes del iPhone funcionan correctamente</div>
+              </div>
+            </div>
+          </button>
+          <button onclick="selectHasBrokenParts(true)" class="option-card w-full p-4 rounded-xl text-left ${valuationData.hasBrokenParts === true ? 'selected' : ''}">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5" style="border-color: ${valuationData.hasBrokenParts === true ? '#0166FF' : '#d1d5db'};">
+                ${valuationData.hasBrokenParts === true ? '<div class="w-3 h-3 rounded-full" style="background-color: #0166FF;"></div>' : ''}
+              </div>
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">Sí</div>
+                <div class="text-sm text-gray-600 mt-1">Hay componentes que no funcionan o están dañados</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${valuationData.hasBrokenParts === '' ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep5(content) {
+      const brokenPartsDescriptions = {
+        'pantalla': 'La pantalla tiene grietas, líneas o no responde al tacto',
+        'tapa_trasera': 'El vidrio trasero está agrietado o roto',
+        'puerto_carga': 'El puerto no carga o tiene conexión intermitente',
+        'camara_trasera': 'La cámara principal no funciona o tiene daños visibles',
+        'camara_frontal': 'La cámara frontal no funciona correctamente',
+        'face_id': 'El Face ID no funciona o fue deshabilitado',
+        'otro': 'Cualquier otro daño no listado anteriormente'
+      };
+      
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿Qué partes están rotas?</h2>
+        <p class="text-sm text-gray-600 mb-4">Puedes seleccionar múltiples opciones</p>
+        <div class="space-y-3 mb-6">
+          ${brokenPartsOptions.map(option => `
+            <label class="checkbox-card block p-4 rounded-xl cursor-pointer ${valuationData.brokenParts.includes(option.id) ? 'checked-card' : ''}">
+              <div class="flex items-start">
+                <input type="checkbox" ${valuationData.brokenParts.includes(option.id) ? 'checked' : ''} onchange="toggleBrokenPart('${option.id}')" class="w-5 h-5 rounded mt-0.5 mr-3" style="accent-color: #0166FF;">
+                <div class="flex-1">
+                  <div class="font-medium text-gray-800">${option.text}</div>
+                  <div class="text-sm text-gray-600 mt-1">${brokenPartsDescriptions[option.id]}</div>
+                </div>
+              </div>
+            </label>
+          `).join('')}
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${valuationData.brokenParts.length === 0 ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep6(content) {
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿El iPhone ha sido reparado o se le han cambiado piezas previamente?</h2>
+        <div class="space-y-4 mb-6">
+          <button onclick="selectHasRepairs(false)" class="option-card w-full p-4 rounded-xl text-left ${valuationData.hasRepairs === false && valuationData.hasRepairs !== '' ? 'selected' : ''}">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5" style="border-color: ${valuationData.hasRepairs === false && valuationData.hasRepairs !== '' ? '#0166FF' : '#d1d5db'};">
+                ${valuationData.hasRepairs === false && valuationData.hasRepairs !== '' ? '<div class="w-3 h-3 rounded-full" style="background-color: #0166FF;"></div>' : ''}
+              </div>
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">No</div>
+                <div class="text-sm text-gray-600 mt-1">El dispositivo mantiene todas sus piezas originales</div>
+              </div>
+            </div>
+          </button>
+          <button onclick="selectHasRepairs(true)" class="option-card w-full p-4 rounded-xl text-left ${valuationData.hasRepairs === true ? 'selected' : ''}">
+            <div class="flex items-start">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mr-3 mt-0.5" style="border-color: ${valuationData.hasRepairs === true ? '#0166FF' : '#d1d5db'};">
+                ${valuationData.hasRepairs === true ? '<div class="w-3 h-3 rounded-full" style="background-color: #0166FF;"></div>' : ''}
+              </div>
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">Sí</div>
+                <div class="text-sm text-gray-600 mt-1">Se han reemplazado o reparado algunas piezas</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${valuationData.hasRepairs === '' ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep7(content) {
+      const disabledParts = valuationData.brokenParts.filter(part => 
+        part === 'pantalla' || part === 'tapa_trasera' || part === 'camara_trasera'
+      );
+      
+      const repairDescriptions = {
+        'pantalla': 'Se reemplazó el display o cristal de la pantalla',
+        'bateria': 'Se cambió la batería por una nueva',
+        'tapa_trasera': 'Se reemplazó el vidrio trasero del dispositivo',
+        'camara_trasera': 'Se reparó o cambió la cámara principal'
+      };
+      
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿Qué partes han sido reparadas o cambiadas?</h2>
+        <p class="text-sm text-gray-600 mb-4">Puedes seleccionar múltiples opciones</p>
+        <div class="space-y-3 mb-6" id="repair-parts-list">
+          ${repairPartsOptions.map(option => {
+            const isDisabled = disabledParts.includes(option.id);
+            const isSelected = valuationData.repairedParts.some(rp => rp.id === option.id);
+            return `
+              <div class="space-y-2">
+                <label class="checkbox-card block p-4 rounded-xl ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${isSelected ? 'checked-card' : ''}">
+                  <div class="flex items-start">
+                    <input type="checkbox" ${isDisabled ? 'disabled' : ''} ${isSelected ? 'checked' : ''} onchange="toggleRepairedPart('${option.id}', '${option.text}')" class="w-5 h-5 rounded mt-0.5 mr-3" style="accent-color: #0166FF;">
+                    <div class="flex-1">
+                      <div class="font-medium text-gray-800">${option.text}</div>
+                      <div class="text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-600'} mt-1">${isDisabled ? 'No disponible (marcado como roto)' : repairDescriptions[option.id]}</div>
+                    </div>
+                  </div>
+                </label>
+                ${isSelected ? `
+                  <div class="ml-12 space-y-2">
+                    <p class="text-sm font-medium text-gray-700">¿Es pieza original de Apple o compatible?</p>
+                    <div class="flex gap-3">
+                      <label class="flex-1 p-3 border-2 rounded-lg cursor-pointer ${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'original' ? 'bg-green-50' : 'border-gray-200 bg-white'}" style="${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'original' ? 'border-color: #10D898;' : ''}">
+                        <input type="radio" name="type-${option.id}" value="original" ${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'original' ? 'checked' : ''} onchange="setRepairType('${option.id}', 'original')" class="mr-2" style="accent-color: #10D898;">
+                        <span class="text-sm font-medium">Original Apple</span>
+                      </label>
+                      <label class="flex-1 p-3 border-2 rounded-lg cursor-pointer ${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'compatible' ? 'bg-orange-50' : 'border-gray-200 bg-white'}" style="${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'compatible' ? 'border-color: #FF6B35;' : ''}">
+                        <input type="radio" name="type-${option.id}" value="compatible" ${valuationData.repairedParts.find(rp => rp.id === option.id)?.type === 'compatible' ? 'checked' : ''} onchange="setRepairType('${option.id}', 'compatible')" class="mr-2" style="accent-color: #FF6B35;">
+                        <span class="text-sm font-medium">Compatible</span>
+                      </label>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="nextStep()" ${valuationData.repairedParts.length === 0 || valuationData.repairedParts.some(rp => !rp.type) ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-semibold rounded-xl disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors" style="background-color: #0166FF;" onmouseover="this.style.backgroundColor='#0052CC'" onmouseout="this.style.backgroundColor='#0166FF'">
+            Continuar
+          </button>
+        </div>
+      `;
+    }
+
+    function renderStep8(content) {
+      content.innerHTML = `
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">¿Qué porcentaje de salud de batería tiene?</h2>
+        <p class="text-sm text-gray-600 mb-6 text-center">Puedes encontrar esta información en Ajustes > Batería > Salud de la batería</p>
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Selecciona el porcentaje:</label>
+          <select id="battery-select" onchange="selectBatteryHealth(this.value)" class="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:outline-none bg-white" style="border-color: #e5e7eb;" onfocus="this.style.borderColor='#0166FF'" onblur="this.style.borderColor='#e5e7eb'">
+            <option value="">-- Selecciona --</option>
+            ${Array.from({length: 26}, (_, i) => 100 - i).filter(p => p >= 75).map(percent => `
+              <option value="${percent}" ${valuationData.batteryHealth === percent ? 'selected' : ''}>${percent}%</option>
+            `).join('')}
+          </select>
+          ${valuationData.batteryHealth ? `
+            <div class="mt-4 p-4 rounded-lg ${
+              valuationData.batteryHealth >= 95 ? 'bg-green-50 border-2 border-green-200' :
+              valuationData.batteryHealth >= 90 ? 'bg-blue-50 border-2 border-blue-200' :
+              valuationData.batteryHealth >= 85 ? 'bg-yellow-50 border-2 border-yellow-200' :
+              valuationData.batteryHealth >= 80 ? 'bg-orange-50 border-2 border-orange-200' :
+              'bg-red-50 border-2 border-red-200'
+            }">
+              <div class="font-semibold ${
+                valuationData.batteryHealth >= 95 ? 'text-green-800' :
+                valuationData.batteryHealth >= 90 ? 'text-blue-800' :
+                valuationData.batteryHealth >= 85 ? 'text-yellow-800' :
+                valuationData.batteryHealth >= 80 ? 'text-orange-800' :
+                'text-red-800'
+              }">
+                ${valuationData.batteryHealth >= 95 ? 'Excelente estado' :
+                  valuationData.batteryHealth >= 90 ? 'Muy buen estado' :
+                  valuationData.batteryHealth >= 85 ? 'Buen estado' :
+                  valuationData.batteryHealth >= 80 ? 'Estado aceptable' :
+                  'Estado regular'}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+        <div class="flex gap-4">
+          <button onclick="previousStep()" class="flex-1 py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+            Atrás
+          </button>
+          <button onclick="showValuation()" ${!valuationData.batteryHealth ? 'disabled' : ''} class="flex-1 py-3 px-6 text-white font-bold rounded-xl disabled:cursor-not-allowed transition-all shadow-lg" style="${valuationData.batteryHealth ? 'background-color: #10D898;' : 'background: #d1d5db;'}" onmouseover="if(this.style.backgroundColor==='rgb(16, 216, 152)') this.style.backgroundColor='#0EC589'" onmouseout="if(this.style.backgroundColor==='rgb(14, 197, 137)') this.style.backgroundColor='#10D898'">
+            Ver valoración final
+          </button>
+        </div>
+      `;
+    }
+
+    function selectModel(model) {
+      valuationData.model = model;
+      valuationData.storage = '';
+      valuationData.basePrice = 0;
+      currentStep = 2;
+      renderStep();
+    }
+
+    function selectStorage(storage) {
+      valuationData.storage = storage;
+      valuationData.basePrice = iphoneModels[valuationData.model][storage];
+      renderStep();
+    }
+
+    function selectCondition(conditionId) {
+      valuationData.condition = conditionId;
+      const condition = conditionOptions.find(c => c.id === conditionId);
+      valuationData.conditionDeduction = condition.deduction;
+      renderStep();
+    }
+
+    function selectHasBrokenParts(hasBroken) {
+      valuationData.hasBrokenParts = hasBroken;
+      if (!hasBroken) {
+        valuationData.brokenParts = [];
+        valuationData.brokenPartsDeduction = 0;
+      }
+      renderStep();
+    }
+
+    function toggleBrokenPart(partId) {
+      const index = valuationData.brokenParts.indexOf(partId);
+      if (index > -1) {
+        valuationData.brokenParts.splice(index, 1);
+      } else {
+        valuationData.brokenParts.push(partId);
+      }
+      
+      valuationData.brokenPartsDeduction = valuationData.brokenParts.reduce((sum, id) => {
+        const part = brokenPartsOptions.find(p => p.id === id);
+        return sum + part.deduction;
+      }, 0);
+      
+      renderStep();
+    }
+
+    function selectHasRepairs(hasRepairs) {
+      valuationData.hasRepairs = hasRepairs;
+      if (!hasRepairs) {
+        valuationData.repairedParts = [];
+        valuationData.repairDeduction = 0;
+      }
+      renderStep();
+    }
+
+    function toggleRepairedPart(partId, partText) {
+      const existingIndex = valuationData.repairedParts.findIndex(rp => rp.id === partId);
+      if (existingIndex > -1) {
+        valuationData.repairedParts.splice(existingIndex, 1);
+      } else {
+        valuationData.repairedParts.push({ id: partId, text: partText, type: '' });
+      }
+      calculateRepairDeduction();
+      renderStep();
+    }
+
+    function setRepairType(partId, type) {
+      const part = valuationData.repairedParts.find(rp => rp.id === partId);
+      if (part) {
+        part.type = type;
+      }
+      calculateRepairDeduction();
+      renderStep();
+    }
+
+    function calculateRepairDeduction() {
+      valuationData.repairDeduction = valuationData.repairedParts.reduce((sum, part) => {
+        return sum + (part.type === 'compatible' ? 25 : 0);
+      }, 0);
+    }
+
+    function selectBatteryHealth(value) {
+      valuationData.batteryHealth = parseInt(value);
+      valuationData.batteryDeduction = getBatteryDeduction(valuationData.batteryHealth);
+      renderStep();
+    }
+
+    function getBatteryDeduction(health) {
+      if (health >= 95) return 0;
+      if (health >= 90) return 5;
+      if (health >= 85) return 15;
+      if (health >= 80) return 25;
+      return 35;
+    }
+
+    function nextStep() {
+      if (currentStep === 4 && !valuationData.hasBrokenParts) {
+        currentStep = 6;
+      } else if (currentStep === 6 && !valuationData.hasRepairs) {
+        currentStep = 8;
+      } else {
+        currentStep++;
+      }
+      renderStep();
+    }
+
+    function previousStep() {
+      if (currentStep === 6 && !valuationData.hasBrokenParts) {
+        currentStep = 4;
+      } else if (currentStep === 8 && !valuationData.hasRepairs) {
+        currentStep = 6;
+      } else {
+        currentStep--;
+      }
+      renderStep();
+    }
+
+    function showValuation() {
+      const basePrice = valuationData.basePrice;
+      const totalDeduction = valuationData.conditionDeduction + 
+                            valuationData.brokenPartsDeduction + 
+                            valuationData.repairDeduction + 
+                            valuationData.batteryDeduction;
+      
+      const calculatedPrice = basePrice * (1 - totalDeduction / 100);
+      const finalPrice = Math.max(calculatedPrice, 10);
+      
+      // Get condition text
+      const conditionOption = conditionOptions.find(c => c.id === valuationData.condition);
+      const conditionText = conditionOption ? conditionOption.text : '';
+      
+      // Get broken parts answer
+      let brokenPartsAnswer = '';
+      if (valuationData.hasBrokenParts === false) {
+        brokenPartsAnswer = 'No';
+      } else if (valuationData.hasBrokenParts === true) {
+        const partsNames = valuationData.brokenParts.map(id => {
+          const part = brokenPartsOptions.find(p => p.id === id);
+          return part ? part.text : '';
+        }).join(', ');
+        brokenPartsAnswer = `Sí (${partsNames})`;
+      }
+      
+      // Get repairs answer
+      let repairsAnswer = '';
+      if (valuationData.hasRepairs === false) {
+        repairsAnswer = 'No';
+      } else if (valuationData.hasRepairs === true) {
+        const partsNames = valuationData.repairedParts.map(rp => {
+          const typeText = rp.type === 'original' ? 'Original' : 'Compatible';
+          return `${rp.text} (${typeText})`;
+        }).join(', ');
+        repairsAnswer = `Sí (${partsNames})`;
+      }
+      
+      const content = document.getElementById('step-content');
+      content.innerHTML = `
+        <div class="text-center">
+          <div class="mb-8">
+            <div class="inline-block p-4 rounded-full mb-4" style="background: linear-gradient(to bottom right, #E6FFF8, #E6F2FF);">
+              <svg class="w-16 h-16" fill="none" stroke="#10D898" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">¡Valoración Completada!</h2>
+            <p class="text-gray-600">Aquí está el valor estimado de tu iPhone</p>
+          </div>
+
+          <div class="rounded-2xl p-8 mb-6" style="background: linear-gradient(to bottom right, #E6F2FF, #E6FFF8);">
+            <div class="text-center">
+              <div class="text-xl font-semibold text-gray-700 mb-4">${valuationData.model} ${valuationData.storage}</div>
+              <div class="text-6xl font-bold text-transparent bg-clip-text mb-4" style="background: linear-gradient(to right, #10D898, #0166FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                ${Math.round(finalPrice)}€
+              </div>
+              <div class="text-base text-gray-700 font-medium">Este es el precio que te pagaremos por tu iPhone</div>
+            </div>
+          </div>
+
+          <div class="bg-white border-2 border-gray-200 rounded-xl p-5 mb-6 text-left">
+            <h3 class="font-bold text-gray-800 mb-4 text-center">Resumen de tu dispositivo</h3>
+            <div class="space-y-3">
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">Móvil:</span>
+                <span class="text-sm font-semibold text-gray-800 text-right">${valuationData.model}</span>
+              </div>
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">Almacenamiento:</span>
+                <span class="text-sm font-semibold text-gray-800">${valuationData.storage}</span>
+              </div>
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">Estado:</span>
+                <span class="text-sm font-semibold text-gray-800 text-right">${conditionText}</span>
+              </div>
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">¿Alguna parte rota?</span>
+                <span class="text-sm font-semibold text-gray-800 text-right max-w-[60%]">${brokenPartsAnswer}</span>
+              </div>
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">¿Se ha reparado antes?</span>
+                <span class="text-sm font-semibold text-gray-800 text-right max-w-[60%]">${repairsAnswer}</span>
+              </div>
+              <div class="flex justify-between items-start">
+                <span class="text-sm font-medium text-gray-600">Salud de la batería:</span>
+                <span class="text-sm font-semibold text-gray-800">${valuationData.batteryHealth}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
+            <div class="flex items-start">
+              <svg class="w-6 h-6 text-blue-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div class="text-left">
+                <div class="font-semibold text-blue-900 mb-1">Información</div>
+                <div class="text-sm text-blue-800">Esta valoración se ha realizado en función de las características que nos has indicado. La evaluación final de tu iPhone se llevará a cabo en nuestra tienda.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <button onclick="sendWhatsApp()" class="w-full py-3 px-6 text-white font-semibold rounded-xl transition-colors" style="background-color: #10D898;" onmouseover="this.style.backgroundColor='#0EC589'" onmouseout="this.style.backgroundColor='#10D898'">
+              Aceptar y continuar
+            </button>
+            <button onclick="resetCalculator()" class="w-full py-3 px-6 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-colors">
+              Volver a valorar
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    function sendWhatsApp() {
+      const basePrice = valuationData.basePrice;
+      const totalDeduction = valuationData.conditionDeduction + 
+                            valuationData.brokenPartsDeduction + 
+                            valuationData.repairDeduction + 
+                            valuationData.batteryDeduction;
+      
+      const calculatedPrice = basePrice * (1 - totalDeduction / 100);
+      const finalPrice = Math.max(Math.round(calculatedPrice), 10);
+      
+      // Map condition ID to WhatsApp message text
+      let conditionText = '';
+      if (valuationData.condition === 1) {
+        conditionText = 'En excelente condición';
+      } else if (valuationData.condition === 2) {
+        conditionText = 'Con pocas marcas';
+      } else if (valuationData.condition === 3) {
+        conditionText = 'Con muchas marcas';
+      }
+      
+      let brokenPartsAnswer = '';
+      if (valuationData.hasBrokenParts === false) {
+        brokenPartsAnswer = 'No';
+      } else if (valuationData.hasBrokenParts === true) {
+        const partsNames = valuationData.brokenParts.map(id => {
+          const part = brokenPartsOptions.find(p => p.id === id);
+          return part ? part.text : '';
+        }).join(', ');
+        brokenPartsAnswer = `Sí (${partsNames})`;
+      }
+      
+      let repairsAnswer = '';
+      if (valuationData.hasRepairs === false) {
+        repairsAnswer = 'No';
+      } else if (valuationData.hasRepairs === true) {
+        const partsNames = valuationData.repairedParts.map(rp => {
+          const typeText = rp.type === 'original' ? 'Original' : 'Compatible';
+          return `${rp.text} (${typeText})`;
+        }).join(', ');
+        repairsAnswer = `Sí (${partsNames})`;
+      }
+      
+      const message = `Hola, he valorado mi ${valuationData.model} en vuestra página web y acepto la oferta de ${finalPrice}€. Aquí tenéis los datos de mi iPhone
+
+Móvil: ${valuationData.model}
+Almacenamiento: ${valuationData.storage}
+Estado: ${conditionText}
+¿Alguna parte rota? ${brokenPartsAnswer}
+¿Se ha reparado antes? ${repairsAnswer}
+Salud de la batería: ${valuationData.batteryHealth}%
+
+¿Cuál es el siguiente paso?`;
+      
+      const phoneNumber = '34632523557';
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    function resetCalculator() {
+      currentStep = 1;
+      valuationData = {
+        model: '',
+        storage: '',
+        basePrice: 0,
+        condition: '',
+        conditionDeduction: 0,
+        hasBrokenParts: '',
+        brokenParts: [],
+        brokenPartsDeduction: 0,
+        hasRepairs: '',
+        repairedParts: [],
+        repairDeduction: 0,
+        batteryHealth: '',
+        batteryDeduction: 0
+      };
+      renderApp();
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities: (config) => ({
+          recolorables: [],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['app_title', config.app_title || defaultConfig.app_title],
+          ['subtitle_text', config.subtitle_text || defaultConfig.subtitle_text]
+        ])
+      });
+    }
+
+    renderApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cdbf22091e9cc6b',t:'MTc3MTA2NTYxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
